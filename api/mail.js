@@ -13,15 +13,13 @@ export default async function handler(req) {
     },
     body: JSON.stringify({
       from: 'ks·backlog <onboarding@resend.dev>',
-      to: ['maualopezcastagnola@gmail.com', 'maoscherov@gmail.com'],
+      to: ['maualopezcastagnola@gmail.com'],
       subject: body.subject,
       html: body.html
     })
   });
 
   const data = await resp.json();
-  console.log('RESEND RESPONSE:', JSON.stringify(data));
-  
   return new Response(JSON.stringify(data), {
     status: resp.status,
     headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
