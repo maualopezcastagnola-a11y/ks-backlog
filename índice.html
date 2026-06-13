@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ks·backlog</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F8F8F7;color:#1a1a1a;min-height:100vh;font-size:14px}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:215px;background:#fff;border-right:1px solid #EBEBEA;display:flex;flex-direction:column;z-index:50;overflow-y:auto}
+.main{margin-left:215px;min-height:100vh}
+.topbar{height:50px;background:#fff;border-bottom:1px solid #EBEBEA;display:flex;align-items:center;justify-content:space-between;padding:0 1.25rem;position:sticky;top:0;z-index:40}
+.content{padding:1.25rem}
+/* SIDEBAR */
+.sb-logo{padding:1rem 1rem .75rem;display:flex;align-items:center;gap:8px;border-bottom:1px solid #EBEBEA;flex-shrink:0}
+.sb-mark{width:26px;height:26px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700}
+.sb-text{font-size:13px;font-weight:600}.sb-text span{color:#7F77DD}
+.sb-section{padding:.6rem .75rem .15rem;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#9a9a9a}
+.sb-item{display:flex;align-items:center;gap:7px;padding:.38rem .65rem;margin:1px .4rem;border-radius:6px;cursor:pointer;font-size:12px;color:#6b6b6b;transition:all .15s;border:none;background:transparent;width:calc(100% - .8rem);text-align:left}
+.sb-item:hover{background:#F4F4F3;color:#1a1a1a}
+.sb-item.active{background:#F0EFFD;color:#7F77DD;font-weight:500}
+.sb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sb-bottom{padding:.65rem .75rem;border-top:1px solid #EBEBEA;font-size:10px;color:#9a9a9a;flex-shrink:0}
+/* TOPBAR */
+.page-title{font-size:14px;font-weight:600;color:#1a1a1a}
+.view-toggle{display:flex;background:#F4F4F3;border-radius:7px;padding:2px;gap:1px}
+.view-btn{padding:4px 10px;font-size:11px;background:transparent;border:none;cursor:pointer;color:#6b6b6b;border-radius:5px;transition:all .15s;font-weight:500}
+.view-btn.active{background:#fff;color:#1a1a1a;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.btn-new{display:flex;align-items:center;gap:4px;padding:6px 12px;font-size:12px;border:none;border-radius:7px;background:#1a1a1a;color:#fff;cursor:pointer;font-weight:500}
+.btn-new:hover{opacity:.85}
+/* CARDS GENERALES */
+.section-card{background:#fff;border:1px solid #EBEBEA;border-radius:11px;margin-bottom:1rem;overflow:hidden}
+.section-header{display:flex;align-items:center;gap:9px;padding:.8rem 1.1rem;cursor:pointer;background:#FAFAF9;border-bottom:1px solid #EBEBEA}
+.section-header:hover{background:#F4F4F3}
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1rem}
+.dash-card{background:#fff;border:1px solid #EBEBEA;border-radius:11px;padding:.85rem 1rem}
+.dash-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:.4rem}
+.dash-val{font-size:24px;font-weight:700;line-height:1}
+.dash-label{font-size:11px;color:#9a9a9a;margin-top:2px}
+.pipeline-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:1rem}
+.pipe-card{background:#fff;border:1px solid #EBEBEA;border-radius:11px;padding:.85rem 1rem}
+.pipe-name{font-size:12px;font-weight:600;margin-bottom:.4rem;display:flex;align-items:center;gap:6px}
+.pipe-val{font-size:18px;font-weight:700;color:#1a1a1a}
+.pipe-label{font-size:10px;color:#9a9a9a}
+.pipe-bar{height:4px;background:#F4F4F3;border-radius:2px;margin-top:.5rem;overflow:hidden}
+.pipe-fill{height:100%;border-radius:2px}
+.alert-row{display:flex;gap:7px;margin-bottom:1rem;flex-wrap:wrap}
+.alert-pill{padding:.35rem .8rem;border-radius:8px;font-size:11px;font-weight:500}
+.ap-warn{background:#FEF3C7;color:#D97706}
+.ap-danger{background:#FEE2E2;color:#DC2626}
+.ap-info{background:#EEF2FF;color:#6366F1}
+.ap-orange{background:#FFF7ED;color:#EA580C}
+.verticals-dash{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:1rem}
+.vdash{background:#fff;border:1px solid #EBEBEA;border-radius:11px;padding:.85rem 1rem;cursor:pointer}
+.vdash:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.vdash-header{display:flex;align-items:center;gap:7px;margin-bottom:.6rem}
+.vdash-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.vdash-name{font-size:12px;font-weight:600;flex:1}
+.vdash-badge{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600}
+.cap-bar-wrap{margin-bottom:.5rem}
+.cap-bar-label{display:flex;justify-content:space-between;font-size:10px;color:#9a9a9a;margin-bottom:3px}
+.cap-bar{height:5px;background:#F4F4F3;border-radius:3px;overflow:hidden}
+.cap-fill{height:100%;border-radius:3px;transition:width .5s}
+.vdash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.vstat{text-align:center}
+.vstat-val{font-size:14px;font-weight:700}
+.vstat-label{font-size:9px;color:#9a9a9a;text-transform:uppercase;letter-spacing:.03em}
+.risk-section{background:#fff;border:1px solid #EBEBEA;border-radius:11px;padding:.85rem 1rem;margin-bottom:1rem}
+.risk-title{font-size:11px;font-weight:700;margin-bottom:.65rem;text-transform:uppercase;letter-spacing:.04em}
+.risk-row{display:flex;align-items:center;gap:10px;padding:.5rem .65rem;border:1px solid #FEE2E2;border-radius:8px;margin-bottom:.4rem;background:#FFFAF9;cursor:pointer}
+.risk-row:hover{background:#FEF2F2}
+/* BADGE */
+.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.badge-client{background:#ECFDF5;color:#059669}
+.badge-product{background:#F4F4F3;color:#6b6b6b}
+.badge-core{background:#EEF2FF;color:#6366F1;border:1px solid #C7D2FE}
+.badge-pipeline{background:#FEF3C7;color:#D97706}
+.badge-demo{background:#FFF7ED;color:#EA580C}
+.badge-risk{background:#FEE2E2;color:#DC2626}
+.badge-won{background:#D1FAE5;color:#059669}
+.badge-lost{background:#F4F4F3;color:#9a9a9a}
+.chevron{font-size:13px;color:#9a9a9a;transition:transform .2s;flex-shrink:0}
+.chevron.open{transform:rotate(180deg)}
+/* OPPORTUNITY CARDS */
+.opp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:1rem}
+.opp-card{background:#fff;border:1px solid #EBEBEA;border-radius:11px;padding:1rem;cursor:pointer;transition:all .15s}
+.opp-card:hover{border-color:#D0D0CE;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.opp-card-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:.5rem}
+.opp-card-name{font-size:13px;font-weight:600;flex:1}
+.opp-products{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:.5rem}
+.opp-product-tag{font-size:10px;padding:2px 7px;border-radius:6px;background:#F0EFFD;color:#7F77DD;font-weight:500}
+.opp-meta{display:grid;grid-template-columns:1fr 1fr;gap:.35rem}
+.opp-meta-item{font-size:10px;color:#9a9a9a}
+.opp-meta-val{font-size:11px;font-weight:600;color:#1a1a1a}
+.opp-footer{display:flex;align-items:center;gap:6px;margin-top:.6rem;padding-top:.6rem;border-top:1px solid #EBEBEA}
+.prob-bar{flex:1;height:4px;background:#F4F4F3;border-radius:2px;overflow:hidden}
+.prob-fill{height:100%;border-radius:2px;transition:width .5s}
+/* CLIENT CARDS */
+.client-list{display:flex;flex-direction:column;gap:.65rem}
+.client-row{background:#fff;border:1px solid #EBEBEA;border-radius:11px;overflow:hidden}
+.client-row-header{display:flex;align-items:center;gap:10px;padding:.75rem 1.1rem;cursor:pointer;background:#FAFAF9;border-bottom:1px solid #EBEBEA}
+.client-row-header:hover{background:#F4F4F3}
+.client-avatar{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.client-info{flex:1}
+.client-company{font-size:13px;font-weight:600}
+.client-contact{font-size:10px;color:#9a9a9a;margin-top:1px}
+.client-body{padding:.75rem 1.1rem}
+.client-products{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:.6rem}
+/* KANBAN */
+.platform-section{margin-bottom:1rem;background:#fff;border:1px solid #EBEBEA;border-radius:11px;overflow:hidden}
+.platform-header{display:flex;align-items:center;gap:9px;padding:.75rem 1.1rem;cursor:pointer;border-bottom:1px solid #EBEBEA;background:#FAFAF9}
+.platform-header:hover{background:#F4F4F3}
+.platform-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.platform-info{flex:1}
+.platform-name{font-size:13px;font-weight:600}
+.platform-sub{font-size:10px;color:#9a9a9a;margin-top:1px}
+.module-section{border-bottom:1px solid #EBEBEA}
+.module-section:last-child{border-bottom:none}
+.module-header{display:flex;align-items:center;gap:7px;padding:.45rem 1.1rem .45rem 1.5rem;background:#FAFAF9;border-bottom:1px solid #EBEBEA}
+.module-name{font-size:10px;font-weight:700;color:#6b6b6b;flex:1;text-transform:uppercase;letter-spacing:.06em}
+.module-count{font-size:10px;color:#9a9a9a}
+.kanban{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.kcol{border-right:1px solid #EBEBEA;min-height:70px}
+.kcol:last-child{border-right:none}
+.kcol-header{padding:.4rem .8rem;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9a9a9a;border-bottom:1px solid #EBEBEA;display:flex;justify-content:space-between;align-items:center}
+.kcol-header.s-backlog{border-top:2px solid #D1D5DB}
+.kcol-header.s-inprogress{border-top:2px solid #F59E0B}
+.kcol-header.s-review{border-top:2px solid #6366F1}
+.kcol-header.s-done{border-top:2px solid #10B981}
+.kcol-count{background:#F4F4F3;color:#6b6b6b;font-size:10px;padding:1px 5px;border-radius:8px;font-weight:600}
+.kcol-body{padding:.45rem;display:flex;flex-direction:column;gap:.3rem;min-height:70px;transition:background .15s}
+.kcol-body.drag-over{background:#F0EFFD;border-radius:6px}
+/* STORY CARD */
+.card{background:#fff;border:1.5px solid #EBEBEA;border-radius:8px;padding:.5rem .6rem;cursor:grab;transition:all .15s;user-select:none}
+.card:hover{border-color:#D0D0CE;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.card.dragging{opacity:.4;transform:rotate(1.5deg);cursor:grabbing}
+.card.has-risk{border-left:3px solid #DC2626}
+.card-row1{display:flex;align-items:flex-start;gap:5px;margin-bottom:.2rem}
+.card-title{font-size:11px;font-weight:600;flex:1;line-height:1.4}
+.prio-badge{font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700;flex-shrink:0}
+.prio-badge.high{background:#FEE2E2;color:#DC2626}
+.prio-badge.mid{background:#FEF3C7;color:#D97706}
+.prio-badge.low{background:#D1FAE5;color:#059669}
+.card-story{font-size:10px;color:#6b6b6b;font-style:italic;line-height:1.4;margin-bottom:.2rem;border-left:2px solid #EBEBEA;padding-left:5px}
+.card-story.empty{color:#C9C9C7;font-style:normal;border-left-color:#F4F4F3}
+.card-dates{display:flex;gap:4px;margin-bottom:.2rem;flex-wrap:wrap}
+.date-tag{font-size:9px;padding:1px 6px;border-radius:5px;font-weight:500}
+.date-obj{background:#F0FDF4;color:#059669;border:1px solid #BBF7D0}
+.date-est{background:#EEF2FF;color:#6366F1;border:1px solid #C7D2FE}
+.date-overdue{background:#FEE2E2;color:#DC2626;border:1px solid #FECACA}
+.date-week{background:#FEF3C7;color:#D97706;border:1px solid #FDE68A}
+.card-footer{display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:.15rem}
+.card-tag{font-size:9px;padding:1px 5px;border:1px solid #EBEBEA;border-radius:5px;color:#6b6b6b;background:#FAFAF9;font-weight:500}
+.card-owner{font-size:9px;padding:1px 5px;border-radius:5px;font-weight:600}
+.card-owner.mariano{background:#EEF2FF;color:#6366F1}
+.card-owner.mauricio{background:#F0EFFD;color:#7F77DD}
+.card-owner.ambos{background:#F0FDF4;color:#059669}
+.card-risk-badge{font-size:9px;padding:1px 5px;border-radius:5px;font-weight:700;background:#FEE2E2;color:#DC2626}
+.card-next{font-size:9px;color:#6366F1;background:#EEF2FF;padding:1px 5px;border-radius:5px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.add-btn{display:flex;align-items:center;gap:3px;padding:.3rem .4rem;font-size:10px;color:#9a9a9a;border:1.5px dashed #EBEBEA;border-radius:6px;background:transparent;cursor:pointer;width:100%;transition:all .15s}
+.add-btn:hover{color:#6b6b6b;border-color:#D0D0CE;background:#FAFAF9}
+.empty-msg{font-size:10px;color:#C9C9C7;text-align:center;padding:1rem .5rem}
+/* PRODUCT VIEW */
+.product-group{margin-bottom:1.5rem}
+.product-group-label{font-size:10px;font-weight:700;color:#9a9a9a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.65rem;display:flex;align-items:center;gap:8px}
+.product-card{background:#fff;border:1px solid #EBEBEA;border-radius:11px;overflow:hidden;margin-bottom:.75rem}
+.product-card-header{display:flex;align-items:center;gap:9px;padding:.7rem 1.1rem;background:#FAFAF9;border-bottom:1px solid #EBEBEA;cursor:pointer}
+.product-card-header:hover{background:#F4F4F3}
+.product-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.product-name{font-size:13px;font-weight:600;flex:1}
+.product-platforms{display:flex;gap:4px}
+.platform-tag{font-size:10px;padding:2px 7px;border-radius:6px;color:#fff;font-weight:500}
+/* FILTER */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
+.filter-label{font-size:10px;color:#9a9a9a;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-right:2px}
+.chip{padding:4px 11px;font-size:11px;border:1.5px solid #EBEBEA;border-radius:20px;background:#fff;color:#6b6b6b;cursor:pointer;transition:all .15s;font-weight:500}
+.chip.active{border-color:#7F77DD;color:#7F77DD;background:#F0EFFD}
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border:1px solid #EBEBEA;border-radius:14px;padding:1.5rem;width:min(600px,94vw);max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.12)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.modal-title{font-size:15px;font-weight:700}
+.modal-close{width:26px;height:26px;border-radius:6px;border:1px solid #EBEBEA;background:transparent;cursor:pointer;color:#6b6b6b;font-size:13px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.form-full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:.3rem}
+.field label{font-size:10px;color:#6b6b6b;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select,.field textarea{font-size:12px;border:1.5px solid #EBEBEA;border-radius:7px;padding:.45rem .6rem;background:#fff;color:#1a1a1a;width:100%;outline:none;transition:border-color .15s;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#7F77DD}
+.field textarea{resize:vertical;min-height:60px}
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:.3rem;padding:.5rem;border:1.5px solid #EBEBEA;border-radius:7px;background:#FAFAF9}
+.check-row{display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:2px 0;font-weight:500}
+.check-row input{width:13px;height:13px;cursor:pointer;accent-color:#7F77DD}
+.core-notice{display:none;font-size:11px;color:#6366F1;background:#EEF2FF;padding:.4rem .65rem;border-radius:6px}
+.surfaces-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.3rem;padding:.5rem;border:1.5px solid #EBEBEA;border-radius:7px;background:#FAFAF9}
+.risk-toggle-row{display:flex;align-items:center;gap:10px;padding:.5rem .65rem;border:1.5px solid #EBEBEA;border-radius:7px;background:#FAFAF9}
+.risk-toggle-label{font-size:12px;font-weight:500;flex:1}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:#D1D5DB;border-radius:20px;cursor:pointer;transition:background .2s}
+.toggle-slider:before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle input:checked+.toggle-slider{background:#DC2626}
+.toggle input:checked+.toggle-slider:before{transform:translateX(16px)}
+.ai-box{background:linear-gradient(135deg,#F0EFFD,#EEF2FF);border:1.5px solid #C7D2FE;border-radius:10px;padding:.85rem;margin-bottom:.75rem}
+.ai-box-title{font-size:11px;font-weight:700;color:#6366F1;margin-bottom:.5rem}
+.ai-input-row{display:flex;gap:6px}
+.ai-input{flex:1;font-size:12px;border:1.5px solid #C7D2FE;border-radius:7px;padding:.4rem .6rem;background:#fff;color:#1a1a1a;outline:none;font-family:inherit}
+.ai-input:focus{border-color:#7F77DD}
+.ai-btn{padding:.4rem .85rem;font-size:12px;border:none;border-radius:7px;background:#7F77DD;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap}
+.ai-btn:disabled{opacity:.5;cursor:not-allowed}
+.modal-footer{display:flex;justify-content:space-between;align-items:center;margin-top:1.25rem;padding-top:1rem;border-top:1px solid #EBEBEA}
+.btn-del{font-size:11px;color:#DC2626;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;font-weight:600}
+.modal-actions{display:flex;gap:7px}
+.btn-sec{padding:.4rem .9rem;font-size:12px;border:1.5px solid #EBEBEA;border-radius:7px;background:#fff;color:#1a1a1a;cursor:pointer;font-weight:500}
+.btn-pri{padding:.4rem .9rem;font-size:12px;border-radius:7px;background:#1a1a1a;color:#fff;border:none;cursor:pointer;font-weight:600}
+.btn-pri:disabled{opacity:.5}
+.tab-row{display:flex;gap:2px;background:#F4F4F3;border-radius:8px;padding:2px;margin-bottom:1rem}
+.tab-btn{flex:1;padding:5px;font-size:11px;border:none;background:transparent;border-radius:6px;cursor:pointer;color:#6b6b6b;font-weight:500;transition:all .15s}
+.tab-btn.active{background:#fff;color:#1a1a1a;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:.5rem 1.1rem;border-radius:7px;font-size:12px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.2);white-space:nowrap}
+.toast.show{opacity:1}
+.section-hidden{display:none}
+.loading{text-align:center;padding:2.5rem;color:#9a9a9a;font-size:12px}
+.divider-label{font-size:10px;font-weight:700;color:#9a9a9a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.65rem}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-mark">ks</div>
+    <span class="sb-text">kett<span>simple</span></span>
+  </div>
+  <div style="padding:.4rem 0;flex:1">
+    <div class="sb-section">Sistema</div>
+    <button class="sb-item active" id="sb-dashboard" onclick="setView('dashboard',this)">⬡ Dashboard</button>
+    <button class="sb-item" id="sb-opportunities" onclick="setView('opportunities',this)">◈ Oportunidades</button>
+    <button class="sb-item" id="sb-clients" onclick="setView('clients',this)">◎ Clientes</button>
+    <div class="sb-section" style="margin-top:.3rem">Backlog</div>
+    <button class="sb-item" id="sb-product" onclick="setView('product',this)">☰ Por producto</button>
+    <button class="sb-item" id="sb-platform" onclick="setView('platform',this)">▦ Por plataforma</button>
+    <div class="sb-section" style="margin-top:.3rem">Plataformas</div>
+    <button class="sb-item" onclick="jumpTo('remedia',this)"><span class="sb-dot" style="background:#1D9E75"></span>Remedia</button>
+    <button class="sb-item" onclick="jumpTo('fluye',this)"><span class="sb-dot" style="background:#378ADD"></span>Fluye</button>
+    <button class="sb-item" onclick="jumpTo('pymero',this)"><span class="sb-dot" style="background:#7F77DD"></span>Pymero</button>
+    <button class="sb-item" onclick="jumpTo('focusia',this)"><span class="sb-dot" style="background:#D85A30"></span>FocusIA</button>
+    <button class="sb-item" onclick="jumpTo('tranca',this)"><span class="sb-dot" style="background:#F59E0B"></span>Tranca</button>
+  </div>
+  <div class="sb-bottom">Kettsimple · v6</div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <span class="page-title" id="page-title">Dashboard</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="view-toggle">
+        <button class="view-btn active" id="btn-dashboard" onclick="setView('dashboard')">Dashboard</button>
+        <button class="view-btn" id="btn-opportunities" onclick="setView('opportunities')">Oportunidades</button>
+        <button class="view-btn" id="btn-clients" onclick="setView('clients')">Clientes</button>
+        <button class="view-btn" id="btn-product" onclick="setView('product')">Productos</button>
+        <button class="view-btn" id="btn-platform" onclick="setView('platform')">Plataformas</button>
+      </div>
+      <button class="btn-new" id="btn-new-main" onclick="openNewStory()">+ Historia</button>
+    </div>
+  </div>
+  <div class="content"><div id="main-view"><div class="loading">Conectando...</div></div></div>
+</div>
+
+<!-- STORY MODAL -->
+<div class="modal-bg" id="story-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="story-modal-title">Nueva historia</span>
+      <button class="modal-close" onclick="closeStoryModal()">✕</button>
+    </div>
+    <div class="ai-box">
+      <div class="ai-box-title">✦ Generá con IA</div>
+      <div class="ai-input-row">
+        <input type="text" class="ai-input" id="ai-prompt" placeholder="Describí el requerimiento en lenguaje natural..."/>
+        <button class="ai-btn" id="ai-btn" onclick="generateStory()">Generar</button>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="field form-full"><label>Título *</label><input type="text" id="f-title" placeholder="Ej: Control de stock en tiempo real"/></div>
+      <div class="field form-full"><label>Historia de usuario</label><textarea id="f-story" placeholder="Como [rol], quiero [acción] para [beneficio]..."></textarea></div>
+      <div class="field">
+        <label>Plataforma *</label>
+        <select id="f-platform" onchange="onPlatformChange()">
+          <option value="">Seleccionar...</option>
+          <option value="remedia">Remedia</option>
+          <option value="fluye">Fluye</option>
+          <option value="pymero">Pymero</option>
+          <option value="focusia">FocusIA</option>
+          <option value="tranca">Tranca</option>
+        </select>
+      </div>
+      <div class="field"><label>Producto *</label><select id="f-module" onchange="onModuleChange()"></select></div>
+      <div id="core-notice" class="core-notice form-full">⬡ Producto Core — impacta a Remedia y Fluye</div>
+      <div class="field"><label>Estado</label>
+        <select id="f-status">
+          <option value="backlog">Backlog</option>
+          <option value="inprogress">En curso</option>
+          <option value="review">En revisión</option>
+          <option value="done">Listo</option>
+        </select>
+      </div>
+      <div class="field"><label>Prioridad</label>
+        <select id="f-prio">
+          <option value="high">Alta</option>
+          <option value="mid" selected>Media</option>
+          <option value="low">Baja</option>
+        </select>
+      </div>
+      <div class="field"><label>Owner</label>
+        <select id="f-owner">
+          <option value="mauricio">Mauricio</option>
+          <option value="mariano">Mariano</option>
+          <option value="ambos">Ambos</option>
+        </select>
+      </div>
+      <div class="field"><label>Oportunidad vinculada</label><select id="f-opportunity"><option value="">Ninguna</option></select></div>
+      <div class="field"><label>Próximo paso</label><input type="text" id="f-next" placeholder="Ej: Definir estructura BD"/></div>
+      <div class="field"><label>Fecha objetivo</label><input type="date" id="f-date-obj"/></div>
+      <div class="field"><label>Fecha estimada (Mariano)</label><input type="date" id="f-date-est"/></div>
+      <div class="field form-full">
+        <label>Riesgo comercial</label>
+        <div class="risk-toggle-row">
+          <span class="risk-toggle-label">Impacta en cierre o expectativa de cliente</span>
+          <label class="toggle"><input type="checkbox" id="f-risk"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="field form-full" id="risk-ctx-wrap" style="display:none">
+        <label>Contexto del riesgo</label>
+        <input type="text" id="f-risk-ctx" placeholder='Ej: "Sin esto baja prob. de cierre Mascotas"'/>
+      </div>
+      <div class="field form-full"><label>Clientes impactados</label><div class="check-grid" id="clients-check"></div></div>
+      <div class="field form-full">
+        <label>Superficies afectadas</label>
+        <div class="surfaces-grid" id="surfaces-check">
+          <label class="check-row"><input type="checkbox" value="bot"> Bot WhatsApp</label>
+          <label class="check-row"><input type="checkbox" value="dashboard"> Dashboard</label>
+          <label class="check-row"><input type="checkbox" value="checkout"> Checkout</label>
+          <label class="check-row"><input type="checkbox" value="gestion"> Tablero gestión</label>
+          <label class="check-row"><input type="checkbox" value="notif"> Notificaciones</label>
+          <label class="check-row"><input type="checkbox" value="reportes"> Reportes</label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-del" id="story-del-btn" onclick="deleteStory()" style="display:none">🗑 Eliminar</button>
+      <div class="modal-actions">
+        <button class="btn-sec" onclick="closeStoryModal()">Cancelar</button>
+        <button class="btn-pri" id="story-save-btn" onclick="saveStory()">Guardar historia</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENT MODAL -->
+<div class="modal-bg" id="client-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="client-modal-title">Nuevo cliente</span>
+      <button class="modal-close" onclick="closeClientModal()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field form-full"><label>Empresa *</label><input type="text" id="fc-company" placeholder="Ej: Farmacia Mutual Independencia"/></div>
+      <div class="field"><label>Nombre contacto</label><input type="text" id="fc-name" placeholder="Ej: Ivana Luna"/></div>
+      <div class="field"><label>Mail</label><input type="email" id="fc-email" placeholder="ivana@mutual.com"/></div>
+      <div class="field"><label>Celular / WhatsApp</label><input type="text" id="fc-phone" placeholder="+54 9 341 000 0000"/></div>
+      <div class="field"><label>Tipo</label>
+        <select id="fc-type">
+          <option value="client">Cliente activo</option>
+          <option value="demo">Demo activa</option>
+          <option value="pipeline">Pipeline</option>
+          <option value="prospect">Prospecto</option>
+        </select>
+      </div>
+      <div class="field"><label>Fecha de inicio</label><input type="date" id="fc-date"/></div>
+      <div class="field form-full">
+        <label>Productos activos</label>
+        <div class="check-grid" id="fc-products">
+          <label class="check-row"><input type="checkbox" value="Cerca"> Cerca</label>
+          <label class="check-row"><input type="checkbox" value="Llega"> Llega</label>
+          <label class="check-row"><input type="checkbox" value="Activa"> Activa</label>
+          <label class="check-row"><input type="checkbox" value="Salda"> Salda</label>
+          <label class="check-row"><input type="checkbox" value="Receta"> Receta</label>
+          <label class="check-row"><input type="checkbox" value="Pymero"> Pymero</label>
+          <label class="check-row"><input type="checkbox" value="FocusIA"> FocusIA</label>
+          <label class="check-row"><input type="checkbox" value="Tranca"> Tranca</label>
+        </div>
+      </div>
+      <div class="field form-full"><label>Notas</label><textarea id="fc-notes" placeholder="Contexto relevante..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-del" id="client-del-btn" onclick="deleteClient()" style="display:none">🗑 Eliminar</button>
+      <div class="modal-actions">
+        <button class="btn-sec" onclick="closeClientModal()">Cancelar</button>
+        <button class="btn-pri" id="client-save-btn" onclick="saveClient()">Guardar cliente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OPPORTUNITY MODAL -->
+<div class="modal-bg" id="opp-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="opp-modal-title">Nueva oportunidad</span>
+      <button class="modal-close" onclick="closeOppModal()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field form-full"><label>Nombre *</label><input type="text" id="fo-name" placeholder="Ej: Demo Mascotas del Oeste — Cerca"/></div>
+      <div class="field"><label>Cliente *</label><select id="fo-client"></select></div>
+      <div class="field"><label>Estado</label>
+        <select id="fo-status" onchange="updateProbability()">
+          <option value="prospeccion">Prospección</option>
+          <option value="propuesta">Propuesta</option>
+          <option value="demo">Demo</option>
+          <option value="negociacion">Negociación</option>
+          <option value="ganada">Cerrada ganada</option>
+          <option value="perdida">Cerrada perdida</option>
+        </select>
+      </div>
+      <div class="field"><label>Probabilidad %</label><input type="number" id="fo-prob" min="0" max="100" placeholder="45"/></div>
+      <div class="field"><label>Valor USD</label><input type="number" id="fo-usd" placeholder="1800"/></div>
+      <div class="field"><label>Valor ARS</label><input type="number" id="fo-ars" placeholder=""/></div>
+      <div class="field"><label>Fecha objetivo cierre</label><input type="date" id="fo-date"/></div>
+      <div class="field"><label>Próximo paso comercial</label><input type="text" id="fo-next" placeholder="Ej: Enviar propuesta formal"/></div>
+      <div class="field form-full">
+        <label>Productos involucrados</label>
+        <div class="check-grid" id="fo-products">
+          <label class="check-row"><input type="checkbox" value="Cerca"> Cerca</label>
+          <label class="check-row"><input type="checkbox" value="Llega"> Llega</label>
+          <label class="check-row"><input type="checkbox" value="Activa"> Activa</label>
+          <label class="check-row"><input type="checkbox" value="Salda"> Salda</label>
+          <label class="check-row"><input type="checkbox" value="Receta"> Receta</label>
+          <label class="check-row"><input type="checkbox" value="Pymero"> Pymero</label>
+          <label class="check-row"><input type="checkbox" value="FocusIA"> FocusIA</label>
+          <label class="check-row"><input type="checkbox" value="Tranca"> Tranca</label>
+        </div>
+      </div>
+      <div class="field form-full"><label>Notas</label><textarea id="fo-notes" placeholder="Contexto, acuerdos, próximos pasos..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-del" id="opp-del-btn" onclick="deleteOpp()" style="display:none">🗑 Eliminar</button>
+      <div class="modal-actions">
+        <button class="btn-sec" onclick="closeOppModal()">Cancelar</button>
+        <button class="btn-pri" id="opp-save-btn" onclick="saveOpp()">Guardar oportunidad</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://wgynetahdqttqoqnwqmy.supabase.co';
+const SUPABASE_KEY='sb_publishable_fmGj1POMXxWeWKbGS5K_jA_w5w2qULq';
+const RESEND_KEY='re_Jerc7aSg_MFAB5ipsdgPLLBHTb2Vtsuab';
+const NOTIFY=['mauricio.lopez@keepitsimple.com.ar','mariano@keepitsimple.com.ar'];
+const {createClient}=supabase;
+const db=createClient(SUPABASE_URL,SUPABASE_KEY);
+const CAP=2;
+
+const PLATFORMS={
+  remedia:{label:'Remedia',color:'#1D9E75',type:'client',initials:'Re',seg:'Farmacia · Mutual · Droguería',modules:['Receta','Salda','Llega','Cerca','Activa']},
+  fluye:{label:'Fluye',color:'#378ADD',type:'product',initials:'Fl',seg:'Comercios en general',modules:['Cerca','Llega','Activa','Salda']},
+  pymero:{label:'Pymero',color:'#7F77DD',type:'client',initials:'Py',seg:'Cooperativas · Pymes',modules:['Pymero']},
+  focusia:{label:'FocusIA',color:'#D85A30',type:'pipeline',initials:'FI',seg:'Bancario · Financiero',modules:['FocusIA']},
+  tranca:{label:'Tranca',color:'#F59E0B',type:'product',initials:'Tr',seg:'Universal · Autoscalable',modules:['Tranca']},
+};
+const CORE_PRODUCTS=['Cerca','Llega','Activa','Salda'];
+const ALL_PRODUCTS=['Cerca','Llega','Activa','Salda','Receta','Pymero','FocusIA','Tranca'];
+const PRODUCT_COLORS={Cerca:'#7F77DD',Llega:'#378ADD',Activa:'#F59E0B',Salda:'#1D9E75',Receta:'#D85A30',Pymero:'#7F77DD',FocusIA:'#D85A30',Tranca:'#F59E0B'};
+const MODULE_MAP={remedia:['Receta','Salda','Llega','Cerca','Activa'],fluye:['Cerca','Llega','Activa','Salda'],pymero:['Pymero'],focusia:['FocusIA'],tranca:['Tranca']};
+const STATUSES=[{id:'backlog',label:'Backlog',cls:'s-backlog'},{id:'inprogress',label:'En curso',cls:'s-inprogress'},{id:'review',label:'En revisión',cls:'s-review'},{id:'done',label:'Listo',cls:'s-done'}];
+const SL={backlog:'Backlog',inprogress:'En curso',review:'En revisión',done:'Listo'};
+const OPP_STATUS={prospeccion:{label:'Prospección',prob:10,color:'#9a9a9a'},propuesta:{label:'Propuesta',prob:25,color:'#6366F1'},demo:{label:'Demo',prob:45,color:'#F59E0B'},negociacion:{label:'Negociación',prob:70,color:'#378ADD'},ganada:{label:'Ganada',prob:100,color:'#059669'},perdida:{label:'Perdida',prob:0,color:'#9a9a9a'}};
+const CLIENT_TYPE={client:{label:'Cliente activo',bg:'#ECFDF5',color:'#059669'},demo:{label:'Demo activa',bg:'#FFF7ED',color:'#EA580C'},pipeline:{label:'Pipeline',bg:'#EEF2FF',color:'#6366F1'},prospect:{label:'Prospecto',bg:'#F4F4F3',color:'#6b6b6b'}};
+
+let stories=[],clients=[],opps=[],view='dashboard',editStoryId=null,editClientId=null,editOppId=null;
+
+const toast=msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);};
+const today=()=>new Date().toISOString().slice(0,10);
+const fmtDate=d=>{if(!d)return null;const[y,m,day]=d.split('-');return `${day}/${m}/${y.slice(2)}`;};
+const isOverdue=d=>d&&d<today();
+const isThisWeek=d=>{if(!d)return false;const now=new Date(),t=new Date(d),s=new Date(now);s.setDate(now.getDate()-now.getDay());const e=new Date(s);e.setDate(s.getDate()+6);return t>=s&&t<=e;};
+
+async function loadAll(){
+  const [sr,cr,or]=await Promise.all([
+    db.from('stories').select('*').order('created_at',{ascending:true}),
+    db.from('clients').select('*').order('created_at',{ascending:true}),
+    db.from('opportunities').select('*').order('created_at',{ascending:true}),
+  ]);
+  stories=(sr.data||[]).map(r=>({id:r.id,title:r.title,story:r.story,platform:r.platform,module:r.module,status:r.status,prio:r.prio,owner:r.owner,next:r.next_step,clients:r.clients||[],surfaces:r.surfaces||[],dateObj:r.date_obj,dateEst:r.date_est,risk:r.risk||false,riskCtx:r.risk_ctx||'',oppId:r.opportunity_id||''}));
+  clients=(cr.data||[]).map(r=>({id:r.id,company:r.company,contactName:r.contact_name,email:r.email,phone:r.phone,type:r.type,products:r.products||[],startDate:r.start_date,notes:r.notes}));
+  opps=(or.data||[]).map(r=>({id:r.id,name:r.name,clientId:r.client_id,products:r.products||[],status:r.status,valueUsd:r.value_usd,valueArs:r.value_ars,closeDate:r.close_date,probability:r.probability,nextStep:r.next_step,notes:r.notes}));
+  renderMain();
+}
+
+async function sendMail(card,os,ns){
+  const p=PLATFORMS[card.platform]||{};
+  const cl=clients.find(x=>(card.clients||[]).includes(x.id));
+  const html=`<div style="font-family:-apple-system,sans-serif;max-width:500px;margin:0 auto;padding:16px;background:#F8F8F7;border-radius:12px"><div style="background:#fff;border-radius:10px;border:1px solid #EBEBEA;overflow:hidden"><div style="background:${p.color||'#1a1a1a'};padding:12px 16px"><span style="color:#fff;font-weight:700;font-size:13px">${p.label} · ks·backlog</span></div><div style="padding:16px"><div style="font-size:16px;font-weight:700;margin-bottom:10px">${card.title}</div><div style="display:flex;gap:8px;margin-bottom:12px"><span style="background:#F4F4F3;padding:3px 8px;border-radius:6px;font-size:11px;color:#6b6b6b">${SL[os]}</span><span style="color:#9a9a9a">→</span><span style="background:#1a1a1a;padding:3px 8px;border-radius:6px;font-size:11px;color:#fff">${SL[ns]}</span></div>${card.risk?`<div style="background:#FEE2E2;color:#DC2626;padding:6px 10px;border-radius:6px;font-size:11px;margin-bottom:10px">⚠ Riesgo comercial${card.riskCtx?' — '+card.riskCtx:''}</div>`:''}<table style="font-size:11px;width:100%">${cl?`<tr><td style="color:#9a9a9a;padding:3px 0;width:100px">Cliente</td><td>${cl.company}</td></tr>`:''}<tr><td style="color:#9a9a9a;padding:3px 0">Producto</td><td>${card.module||'—'}</td></tr>${card.dateObj?`<tr><td style="color:#9a9a9a;padding:3px 0">Fecha obj.</td><td>${fmtDate(card.dateObj)}</td></tr>`:''}</table></div><div style="padding:8px 16px;background:#FAFAF9;border-top:1px solid #EBEBEA;font-size:10px;color:#9a9a9a">ks·backlog · ${new Date().toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div></div>`;
+  try{await fetch('/api/mail',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subject:`[${p.label}] ${card.title} → ${SL[ns]}`,html})});}catch(e){}
+}
+
+function setView(v,sbEl){
+  view=v;
+  ['dashboard','opportunities','clients','product','platform'].forEach(x=>{document.getElementById('btn-'+x)?.classList.toggle('active',x===v);document.getElementById('sb-'+x)?.classList.toggle('active',x===v);});
+  if(sbEl){document.querySelectorAll('.sb-item').forEach(e=>e.classList.remove('active'));sbEl.classList.add('active');}
+  const titles={dashboard:'Dashboard',opportunities:'Oportunidades',clients:'Clientes',product:'Por producto',platform:'Por plataforma'};
+  document.getElementById('page-title').textContent=titles[v]||v;
+  const btnNew=document.getElementById('btn-new-main');
+  if(v==='clients'){btnNew.textContent='+ Cliente';btnNew.onclick=()=>openNewClient();}
+  else if(v==='opportunities'){btnNew.textContent='+ Oportunidad';btnNew.onclick=()=>openNewOpp();}
+  else{btnNew.textContent='+ Historia';btnNew.onclick=()=>openNewStory();}
+  renderMain();
+}
+
+function jumpTo(pid,el){
+  setView('platform');
+  document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  setTimeout(()=>{const s=document.getElementById('plat-'+pid);if(s)s.scrollIntoView({behavior:'smooth',block:'start'});},120);
+}
+
+function renderMain(){
+  if(view==='dashboard') renderDash();
+  else if(view==='opportunities') renderOpps();
+  else if(view==='clients') renderClients();
+  else if(view==='product') renderProductView();
+  else renderPlatformView();
+}
+
+/* ── DASHBOARD ── */
+function renderDash(){
+  const riskCards=stories.filter(c=>c.risk&&c.status!=='done');
+  const overdue=stories.filter(c=>isOverdue(c.dateObj)&&c.status!=='done');
+  const thisWeek=stories.filter(c=>isThisWeek(c.dateObj)&&c.status!=='done');
+  const activeOpps=opps.filter(o=>o.status!=='ganada'&&o.status!=='perdida');
+  const pipeUsd=activeOpps.reduce((a,o)=>a+(parseFloat(o.valueUsd)||0)*(o.probability||0)/100,0);
+  const pipeArs=activeOpps.reduce((a,o)=>a+(parseFloat(o.valueArs)||0)*(o.probability||0)/100,0);
+
+  const alerts=[];
+  Object.entries(PLATFORMS).forEach(([pid,p])=>{
+    const n=stories.filter(c=>c.platform===pid&&c.status==='inprogress').length;
+    if(n>CAP)alerts.push({t:'danger',msg:`${p.label}: ${n} en curso (límite ${CAP})`});
+    const hp=stories.filter(c=>c.platform===pid&&c.status==='backlog'&&c.prio==='high').length;
+    if(hp>0)alerts.push({t:'warn',msg:`${p.label}: ${hp} alta prioridad sin iniciar`});
+  });
+  if(overdue.length)alerts.push({t:'danger',msg:`${overdue.length} historia${overdue.length>1?'s':''} vencida${overdue.length>1?'s':''}`});
+  if(thisWeek.length)alerts.push({t:'warn',msg:`${thisWeek.length} con fecha esta semana`});
+
+  const vdash=Object.entries(PLATFORMS).map(([pid,p])=>{
+    const pc=stories.filter(c=>c.platform===pid);
+    const n=pc.filter(c=>c.status==='inprogress').length,dn=pc.filter(c=>c.status==='done').length,bl=pc.filter(c=>c.status==='backlog').length;
+    const pct=Math.min((n/CAP)*100,100);
+    const cc=n===0?'#D1D5DB':n<CAP?'#10B981':n===CAP?'#F59E0B':'#EF4444';
+    const bt=n===0?'Libre':n<CAP?'Normal':n===CAP?'Al límite':'Sobrecarga';
+    const bb=n===0?'#F4F4F3':n<CAP?'#D1FAE5':n===CAP?'#FEF3C7':'#FEE2E2';
+    const bc=n===0?'#6b6b6b':n<CAP?'#059669':n===CAP?'#D97706':'#DC2626';
+    const pr=pc.filter(c=>c.risk&&c.status!=='done').length;
+    return `<div class="vdash" onclick="jumpTo('${pid}',document.querySelector('.sb-item'))">
+      <div class="vdash-header"><span class="vdash-dot" style="background:${p.color}"></span><span class="vdash-name">${p.label}</span><span class="vdash-badge" style="background:${bb};color:${bc}">${bt}</span>${pr?`<span class="vdash-badge" style="background:#FEE2E2;color:#DC2626">⚠${pr}</span>`:''}</div>
+      <div class="cap-bar-wrap"><div class="cap-bar-label"><span>En curso</span><span>${n}/${CAP}</span></div><div class="cap-bar"><div class="cap-fill" style="width:${pct}%;background:${cc}"></div></div></div>
+      <div class="vdash-stats">
+        <div class="vstat"><div class="vstat-val">${bl}</div><div class="vstat-label">Backlog</div></div>
+        <div class="vstat"><div class="vstat-val" style="color:#F59E0B">${n}</div><div class="vstat-label">En curso</div></div>
+        <div class="vstat"><div class="vstat-val" style="color:#10B981">${dn}</div><div class="vstat-label">Listo</div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const riskHtml=riskCards.length?`<div class="risk-section"><div class="risk-title">⚠ Riesgo comercial activo (${riskCards.length})</div>
+    ${riskCards.map(c=>{const p=PLATFORMS[c.platform]||{};const od=isOverdue(c.dateObj)&&c.status!=='done';const tw=isThisWeek(c.dateObj)&&c.status!=='done';const dc=od?'#DC2626':tw?'#D97706':'#6b6b6b';const dl=od?`⚡ Vencida ${fmtDate(c.dateObj)}`:tw?`Esta semana ${fmtDate(c.dateObj)}`:c.dateObj?fmtDate(c.dateObj):'Sin fecha';
+    return `<div class="risk-row" onclick="openEditStory('${c.id}')"><span style="width:7px;height:7px;border-radius:50%;background:${p.color};flex-shrink:0"></span><div style="flex:1"><div style="font-size:12px;font-weight:600">${c.title}</div>${c.riskCtx?`<div style="font-size:10px;color:#9a9a9a">${c.riskCtx}</div>`:''}</div><span style="font-size:10px;padding:2px 6px;border-radius:5px;background:#F4F4F3;color:#6b6b6b">${p.label}</span><span style="font-size:10px;font-weight:600;color:${dc}">${dl}</span></div>`;}).join('')}
+  </div>`:''
+
+  document.getElementById('main-view').innerHTML=`
+    <div class="dash-grid">
+      <div class="dash-card"><div class="dash-icon" style="background:#F0EFFD;color:#7F77DD">⬡</div><div class="dash-val">${stories.length}</div><div class="dash-label">Historias totales</div></div>
+      <div class="dash-card"><div class="dash-icon" style="background:#FEF3C7;color:#D97706">◈</div><div class="dash-val">${activeOpps.length}</div><div class="dash-label">Oportunidades activas</div></div>
+      <div class="dash-card"><div class="dash-icon" style="background:#D1FAE5;color:#059669">$</div><div class="dash-val" style="font-size:16px">USD ${Math.round(pipeUsd).toLocaleString()}</div><div class="dash-label">Pipeline ponderado</div></div>
+      <div class="dash-card"><div class="dash-icon" style="background:#FEE2E2;color:#DC2626">⚠</div><div class="dash-val">${riskCards.length}</div><div class="dash-label">Riesgo comercial</div></div>
+    </div>
+    ${alerts.length?`<div class="alert-row">${alerts.map(a=>`<div class="alert-pill ap-${a.t}">${a.msg}</div>`).join('')}</div>`:''}
+    <div class="divider-label">Capacidad de delivery por vertical</div>
+    <div class="verticals-dash">${vdash}</div>
+    ${riskHtml}`;
+}
+
+/* ── OPPORTUNITIES ── */
+function renderOpps(){
+  const active=opps.filter(o=>o.status!=='ganada'&&o.status!=='perdida');
+  const closed=opps.filter(o=>o.status==='ganada'||o.status==='perdida');
+  const totalUsd=active.reduce((a,o)=>a+(parseFloat(o.valueUsd)||0),0);
+  const pipeUsd=active.reduce((a,o)=>a+(parseFloat(o.valueUsd)||0)*(o.probability||0)/100,0);
+
+  const oppCards=opps.map(o=>{
+    const cl=clients.find(c=>c.id===o.clientId);
+    const st=OPP_STATUS[o.status]||{label:o.status,prob:0,color:'#9a9a9a'};
+    const linked=stories.filter(s=>s.oppId===o.id);
+    const prob=o.probability??st.prob;
+    return `<div class="opp-card" onclick="openEditOpp('${o.id}')">
+      <div class="opp-card-top">
+        <div class="opp-card-name">${o.name}</div>
+        <span class="badge" style="background:${st.color}18;color:${st.color}">${st.label}</span>
+      </div>
+      ${cl?`<div style="font-size:11px;color:#6b6b6b;margin-bottom:.4rem">◎ ${cl.company}</div>`:''}
+      <div class="opp-products">${(o.products||[]).map(p=>`<span class="opp-product-tag">${p}</span>`).join('')}</div>
+      <div class="opp-meta">
+        ${o.valueUsd?`<div><div class="opp-meta-item">Valor USD</div><div class="opp-meta-val">USD ${parseFloat(o.valueUsd).toLocaleString()}</div></div>`:''}
+        ${o.valueArs?`<div><div class="opp-meta-item">Valor ARS</div><div class="opp-meta-val">$ ${parseFloat(o.valueArs).toLocaleString()}</div></div>`:''}
+        ${o.closeDate?`<div><div class="opp-meta-item">Fecha cierre</div><div class="opp-meta-val ${isOverdue(o.closeDate)?'':''}">📅 ${fmtDate(o.closeDate)}</div></div>`:''}
+        <div><div class="opp-meta-item">Historias</div><div class="opp-meta-val">${linked.length} vinculadas</div></div>
+      </div>
+      ${o.nextStep?`<div style="font-size:10px;color:#6366F1;margin-top:.5rem;background:#EEF2FF;padding:3px 7px;border-radius:5px">→ ${o.nextStep}</div>`:''}
+      <div class="opp-footer">
+        <div style="font-size:10px;color:#9a9a9a">${prob}% prob.</div>
+        <div class="prob-bar"><div class="prob-fill" style="width:${prob}%;background:${st.color}"></div></div>
+        ${o.valueUsd?`<div style="font-size:10px;font-weight:600;color:#1a1a1a">USD ${Math.round(parseFloat(o.valueUsd)*prob/100).toLocaleString()}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('main-view').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:1rem">
+      <div class="dash-card"><div class="dash-icon" style="background:#EEF2FF;color:#6366F1">◈</div><div class="dash-val">${active.length}</div><div class="dash-label">Oportunidades activas</div></div>
+      <div class="dash-card"><div class="dash-icon" style="background:#F0FDF4;color:#059669">$</div><div class="dash-val" style="font-size:16px">USD ${Math.round(totalUsd).toLocaleString()}</div><div class="dash-label">Valor total pipeline</div></div>
+      <div class="dash-card"><div class="dash-icon" style="background:#FEF3C7;color:#D97706">~</div><div class="dash-val" style="font-size:16px">USD ${Math.round(pipeUsd).toLocaleString()}</div><div class="dash-label">Pipeline ponderado</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+      <div class="divider-label">Oportunidades activas (${active.length})</div>
+      <button class="btn-new" onclick="openNewOpp()">+ Oportunidad</button>
+    </div>
+    <div class="opp-grid">${active.length?active.map(o=>{const cl=clients.find(c=>c.id===o.clientId);const st=OPP_STATUS[o.status]||{label:o.status,prob:0,color:'#9a9a9a'};const linked=stories.filter(s=>s.oppId===o.id);const prob=o.probability??st.prob;return `<div class="opp-card" onclick="openEditOpp('${o.id}')"><div class="opp-card-top"><div class="opp-card-name">${o.name}</div><span class="badge" style="background:${st.color}18;color:${st.color}">${st.label}</span></div>${cl?`<div style="font-size:11px;color:#6b6b6b;margin-bottom:.4rem">◎ ${cl.company}</div>`:''}<div class="opp-products">${(o.products||[]).map(p=>`<span class="opp-product-tag">${p}</span>`).join('')}</div><div class="opp-meta">${o.valueUsd?`<div><div class="opp-meta-item">USD</div><div class="opp-meta-val">USD ${parseFloat(o.valueUsd).toLocaleString()}</div></div>`:''} ${o.closeDate?`<div><div class="opp-meta-item">Cierre</div><div class="opp-meta-val">${fmtDate(o.closeDate)}</div></div>`:''}<div><div class="opp-meta-item">Historias</div><div class="opp-meta-val">${linked.length}</div></div></div>${o.nextStep?`<div style="font-size:10px;color:#6366F1;margin-top:.4rem;background:#EEF2FF;padding:3px 7px;border-radius:5px">→ ${o.nextStep}</div>`:''}<div class="opp-footer"><div style="font-size:10px;color:#9a9a9a">${prob}%</div><div class="prob-bar"><div class="prob-fill" style="width:${prob}%;background:${st.color}"></div></div>${o.valueUsd?`<div style="font-size:10px;font-weight:600">USD ${Math.round(parseFloat(o.valueUsd)*prob/100).toLocaleString()}</div>`:''}</div></div>`;}).join(''):`<div style="color:#9a9a9a;font-size:12px;grid-column:1/-1;padding:1rem 0">No hay oportunidades activas. <button onclick="openNewOpp()" style="color:#7F77DD;background:none;border:none;cursor:pointer;font-size:12px">Crear primera →</button></div>`}</div>
+    ${closed.length?`<div class="divider-label" style="margin-top:1rem">Cerradas (${closed.length})</div><div class="opp-grid">${closed.map(o=>{const cl=clients.find(c=>c.id===o.clientId);const st=OPP_STATUS[o.status]||{};return `<div class="opp-card" style="opacity:.6" onclick="openEditOpp('${o.id}')"><div class="opp-card-top"><div class="opp-card-name">${o.name}</div><span class="badge ${o.status==='ganada'?'badge-won':'badge-lost'}">${st.label}</span></div>${cl?`<div style="font-size:11px;color:#6b6b6b">◎ ${cl.company}</div>`:''}</div>`;}).join('')}</div>`:''}`;
+}
+
+/* ── CLIENTS ── */
+function renderClients(){
+  document.getElementById('main-view').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+      <div class="divider-label">Clientes y prospectos (${clients.length})</div>
+      <button class="btn-new" onclick="openNewClient()">+ Cliente</button>
+    </div>
+    <div class="client-list">${clients.length?clients.map(cl=>{
+      const ct=CLIENT_TYPE[cl.type]||{label:cl.type,bg:'#F4F4F3',color:'#6b6b6b'};
+      const clOpps=opps.filter(o=>o.clientId===cl.id);
+      const clStories=stories.filter(s=>(s.clients||[]).includes(cl.id));
+      const initials=cl.company.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+      return `<div class="client-row">
+        <div class="client-row-header" onclick="toggleSec('cl-${cl.id}','clchv-${cl.id}')">
+          <div class="client-avatar" style="background:${ct.bg};color:${ct.color}">${initials}</div>
+          <div class="client-info">
+            <div class="client-company">${cl.company}</div>
+            <div class="client-contact">${cl.contactName||''} ${cl.email?'· '+cl.email:''} ${cl.phone?'· '+cl.phone:''}</div>
+          </div>
+          <span class="badge" style="background:${ct.bg};color:${ct.color}">${ct.label}</span>
+          <div style="display:flex;gap:12px;text-align:right">
+            <div><div style="font-size:14px;font-weight:700">${clOpps.length}</div><div style="font-size:9px;color:#9a9a9a">opps</div></div>
+            <div><div style="font-size:14px;font-weight:700">${clStories.length}</div><div style="font-size:9px;color:#9a9a9a">historias</div></div>
+          </div>
+          <button onclick="event.stopPropagation();openEditClient('${cl.id}')" style="font-size:11px;padding:3px 8px;border:1px solid #EBEBEA;border-radius:6px;background:#fff;cursor:pointer;color:#6b6b6b;margin-left:4px">Editar</button>
+          <span class="chevron open" id="clchv-${cl.id}">▾</span>
+        </div>
+        <div id="cl-${cl.id}" style="padding:.75rem 1.1rem">
+          <div class="client-products">${(cl.products||[]).map(p=>`<span class="badge badge-core">${p}</span>`).join('')||'<span style="font-size:11px;color:#9a9a9a">Sin productos asignados</span>'}</div>
+          ${cl.notes?`<div style="font-size:11px;color:#6b6b6b;margin-top:.4rem">${cl.notes}</div>`:''}
+          ${clOpps.length?`<div style="margin-top:.6rem"><div style="font-size:10px;font-weight:600;color:#9a9a9a;margin-bottom:.35rem">OPORTUNIDADES</div>${clOpps.map(o=>{const st=OPP_STATUS[o.status]||{};return `<div style="display:flex;align-items:center;gap:7px;padding:.3rem .5rem;border:1px solid #EBEBEA;border-radius:6px;margin-bottom:.3rem;cursor:pointer;background:#FAFAF9" onclick="openEditOpp('${o.id}')"><span style="font-size:11px;font-weight:500;flex:1">${o.name}</span><span class="badge" style="background:${st.color||'#9a9a9a'}18;color:${st.color||'#9a9a9a'}">${st.label||o.status}</span>${o.valueUsd?`<span style="font-size:10px;font-weight:600">USD ${parseFloat(o.valueUsd).toLocaleString()}</span>`:''}</div>`;}).join('')}</div>`:''}
+        </div>
+      </div>`;
+    }).join(''):`<div style="color:#9a9a9a;font-size:12px;padding:2rem;text-align:center">No hay clientes cargados. <button onclick="openNewClient()" style="color:#7F77DD;background:none;border:none;cursor:pointer">Agregar primero →</button></div>`}
+    </div>`;
+}
+
+/* ── PRODUCT VIEW (cross-platform) ── */
+function renderProductView(){
+  const coreProds=CORE_PRODUCTS;
+  const exclusiveProds=ALL_PRODUCTS.filter(p=>!CORE_PRODUCTS.includes(p));
+  const coreHtml=coreProds.map(prod=>productCard(prod,true)).join('');
+  const exclHtml=exclusiveProds.map(prod=>productCard(prod,false)).join('');
+  document.getElementById('main-view').innerHTML=`
+    <div class="product-group">
+      <div class="product-group-label">Productos Core <span style="background:#EEF2FF;color:#6366F1;padding:2px 7px;border-radius:6px;font-size:10px">cross-plataforma</span></div>
+      ${coreHtml}
+    </div>
+    <div class="product-group">
+      <div class="product-group-label">Productos exclusivos</div>
+      ${exclHtml}
+    </div>`;
+  setupDrag();
+}
+
+function productCard(prod,isCore){
+  const color=PRODUCT_COLORS[prod]||'#9a9a9a';
+  const platforms=Object.entries(PLATFORMS).filter(([,p])=>p.modules.includes(prod)).map(([,p])=>p);
+  const prodStories=stories.filter(s=>s.module===prod);
+  const cols=STATUSES.map(s=>{
+    const sc=prodStories.filter(c=>c.status===s.id);
+    return `<div class="kcol"><div class="kcol-header ${s.cls}">${s.label}${sc.length?`<span class="kcol-count">${sc.length}</span>`:''}</div>
+      <div class="kcol-body" data-module="${prod}" data-status="${s.id}">
+        ${sc.length?sc.map(c=>storyCard(c)).join(''):`<div class="empty-msg">—</div>`}
+        <button class="add-btn" onclick="openNewStory('','${prod}','${s.id}')">+ Agregar</button>
+      </div></div>`;
+  }).join('');
+  return `<div class="product-card" id="prod-${prod}">
+    <div class="product-card-header" onclick="toggleSec('prd-${prod}','prdchv-${prod}')">
+      <span class="product-dot" style="background:${color}"></span>
+      <span class="product-name">${prod}</span>
+      ${isCore?'<span class="badge badge-core">Core</span>':''}
+      <div class="product-platforms">${platforms.map(p=>`<span class="platform-tag" style="background:${p.color}">${p.initials}</span>`).join('')}</div>
+      <span style="font-size:10px;color:#9a9a9a">${prodStories.length} historias</span>
+      <span class="chevron open" id="prdchv-${prod}">▾</span>
+    </div>
+    <div id="prd-${prod}"><div class="kanban">${cols}</div></div>
+  </div>`;
+}
+
+/* ── PLATFORM VIEW ── */
+function renderPlatformView(){
+  document.getElementById('main-view').innerHTML=`
+    <div style="margin-bottom:1.25rem">
+      <div class="divider-label" style="margin-bottom:.65rem">Plataforma compartida</div>
+      ${['remedia','fluye'].map(pid=>platformCard(pid)).join('')}
+    </div>
+    <div>
+      <div class="divider-label" style="margin-bottom:.65rem">Productos independientes</div>
+      ${['pymero','focusia','tranca'].map(pid=>platformCard(pid)).join('')}
+    </div>`;
+  setupDrag();
+}
+
+function platformCard(pid){
+  const p=PLATFORMS[pid],pc=stories.filter(c=>c.platform===pid);
+  const ip=pc.filter(c=>c.status==='inprogress').length;
+  const cc=ip>=CAP?'#EF4444':ip>0?'#F59E0B':'#10B981';
+  const bt=p.type==='client'?'badge-client':p.type==='pipeline'?'badge-pipeline':'badge-product';
+  const bl=p.type==='client'?'Cliente activo':p.type==='pipeline'?'Pipeline':'Producto';
+  return `<div class="platform-section" id="plat-${pid}">
+    <div class="platform-header" onclick="toggleSec('pv-${pid}','pvchv-${pid}')">
+      <div class="platform-icon" style="background:${p.color}">${p.initials}</div>
+      <div class="platform-info"><div class="platform-name">${p.label}</div><div class="platform-sub">${p.seg} · ${pc.length} historias · ${ip}/${CAP} en curso</div></div>
+      <span class="badge ${bt}">${bl}</span>
+      <span style="width:7px;height:7px;border-radius:50%;background:${cc};margin-left:4px;flex-shrink:0"></span>
+      <span class="chevron open" id="pvchv-${pid}">▾</span>
+    </div>
+    <div id="pv-${pid}">
+      ${p.modules.map(mod=>{
+        const isC=CORE_PRODUCTS.includes(mod),mCards=pc.filter(c=>c.module===mod);
+        const cols=STATUSES.map(s=>{
+          const sc=mCards.filter(c=>c.status===s.id);
+          return `<div class="kcol"><div class="kcol-header ${s.cls}">${s.label}${sc.length?`<span class="kcol-count">${sc.length}</span>`:''}</div>
+            <div class="kcol-body" data-platform="${pid}" data-module="${mod}" data-status="${s.id}">
+              ${sc.length?sc.map(c=>storyCard(c)).join(''):`<div class="empty-msg">—</div>`}
+              <button class="add-btn" onclick="openNewStory('${pid}','${mod}','${s.id}')">+ Agregar</button>
+            </div></div>`;
+        }).join('');
+        return `<div class="module-section"><div class="module-header">
+          <span class="module-name">${mod}</span>
+          ${isC?'<span class="badge badge-core">Core</span>':''}
+          <span class="module-count">${mCards.length} historias</span>
+        </div><div class="kanban">${cols}</div></div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+/* ── STORY CARD ── */
+function storyCard(c){
+  const pl={high:'Alta',mid:'Media',low:'Baja'};
+  const story=c.story?`<div class="card-story">${c.story.length>70?c.story.slice(0,70)+'…':c.story}</div>`:`<div class="card-story empty">Historia pendiente</div>`;
+  const od=isOverdue(c.dateObj)&&c.status!=='done';
+  const tw=isThisWeek(c.dateObj)&&c.status!=='done';
+  const dateHtml=(c.dateObj||c.dateEst)?`<div class="card-dates">
+    ${c.dateObj?`<span class="date-tag ${od?'date-overdue':tw?'date-week':'date-obj'}">▶${fmtDate(c.dateObj)}</span>`:''}
+    ${c.dateEst?`<span class="date-tag date-est">✓${fmtDate(c.dateEst)}</span>`:''}
+  </div>`:'';
+  const otag=c.owner?`<span class="card-owner ${c.owner}">${{mariano:'Mar',mauricio:'Mau',ambos:'Ambos'}[c.owner]||c.owner}</span>`:'';
+  const opp=opps.find(o=>o.id===c.oppId);
+  const opptag=opp?`<span class="card-tag" style="background:#EEF2FF;color:#6366F1;border-color:#C7D2FE">${opp.name.slice(0,20)}</span>`:'';
+  return `<div class="card${c.risk?' has-risk':''}" draggable="true" data-id="${c.id}" onclick="openEditStory('${c.id}')">
+    <div class="card-row1"><span class="card-title">${c.title}</span><span class="prio-badge ${c.prio||'mid'}">${pl[c.prio||'mid']}</span></div>
+    ${story}${dateHtml}
+    <div class="card-footer">${c.risk?'<span class="card-risk-badge">⚠</span>':''}${otag}${opptag}${c.next?`<span class="card-next">→${c.next}</span>`:''}</div>
+  </div>`;
+}
+
+/* ── DRAG & DROP ── */
+let dragId=null,dragOldSt=null;
+function setupDrag(){
+  document.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('dragstart',e=>{const s=stories.find(x=>x.id===card.dataset.id);dragId=card.dataset.id;dragOldSt=s?.status;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+    card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+  });
+  document.querySelectorAll('.kcol-body').forEach(col=>{
+    col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drag-over');});
+    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
+    col.addEventListener('drop',async e=>{
+      e.preventDefault();col.classList.remove('drag-over');
+      if(!dragId)return;
+      const ns=col.dataset.status,s=stories.find(c=>c.id===dragId);
+      if(!s||s.status===ns){dragId=null;return;}
+      const os=dragOldSt;s.status=ns;
+      const{error}=await db.from('stories').update({status:ns}).eq('id',dragId);
+      if(error){s.status=os;toast('Error');dragId=null;return;}
+      toast(`→ ${SL[ns]}`);sendMail(s,os,ns);
+      dragId=null;dragOldSt=null;renderMain();
+    });
+  });
+}
+
+function toggleSec(id,chevId){
+  const el=document.getElementById(id);if(!el)return;
+  const h=el.classList.toggle('section-hidden');
+  if(chevId){const ch=document.getElementById(chevId);if(ch)ch.textContent=h?'▸':'▾';}
+}
+
+/* ── STORY MODAL ── */
+function onPlatformChange(){
+  const p=document.getElementById('f-platform').value;
+  const sel=document.getElementById('f-module');
+  sel.innerHTML=(MODULE_MAP[p]||[]).map(m=>`<option value="${m}">${m}${CORE_PRODUCTS.includes(m)?' (Core)':''}</option>`).join('');
+  onModuleChange();
+}
+function onModuleChange(){
+  const mod=document.getElementById('f-module').value;
+  document.getElementById('core-notice').style.display=CORE_PRODUCTS.includes(mod)?'block':'none';
+}
+function populateClientsCheck(sel=[]){
+  document.getElementById('clients-check').innerHTML=clients.map(c=>`
+    <label class="check-row"><input type="checkbox" value="${c.id}" ${sel.includes(c.id)?'checked':''}>
+    <span style="font-size:10px;font-weight:500">${c.company}</span></label>`).join('')||'<span style="font-size:11px;color:#9a9a9a">Sin clientes cargados</span>';
+}
+function populateOppSelect(sel=''){
+  document.getElementById('f-opportunity').innerHTML=`<option value="">Ninguna</option>`+opps.map(o=>`<option value="${o.id}" ${o.id===sel?'selected':''}>${o.name}</option>`).join('');
+}
+
+function openNewStory(platform='',module='',status='backlog'){
+  editStoryId=null;
+  document.getElementById('story-modal-title').textContent='Nueva historia';
+  ['f-title','f-next','f-date-obj','f-date-est','f-risk-ctx','ai-prompt'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f-story').value='';
+  document.getElementById('f-platform').value=platform;
+  document.getElementById('f-status').value=status;
+  document.getElementById('f-prio').value='mid';
+  document.getElementById('f-owner').value='mauricio';
+  document.getElementById('f-risk').checked=false;
+  document.getElementById('risk-ctx-wrap').style.display='none';
+  document.getElementById('core-notice').style.display='none';
+  document.getElementById('story-del-btn').style.display='none';
+  document.querySelectorAll('#surfaces-check input').forEach(cb=>cb.checked=false);
+  populateClientsCheck([]);populateOppSelect();
+  if(platform){onPlatformChange();const sel=document.getElementById('f-module');for(const o of sel.options)if(o.value===module){o.selected=true;break;}onModuleChange();}
+  document.getElementById('story-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('f-title').focus(),100);
+}
+
+function openEditStory(sid){
+  const s=stories.find(x=>x.id===sid);if(!s)return;
+  editStoryId=sid;
+  document.getElementById('story-modal-title').textContent='Editar historia';
+  document.getElementById('f-title').value=s.title||'';
+  document.getElementById('f-story').value=s.story||'';
+  document.getElementById('f-platform').value=s.platform||'';
+  document.getElementById('f-status').value=s.status||'backlog';
+  document.getElementById('f-prio').value=s.prio||'mid';
+  document.getElementById('f-owner').value=s.owner||'mauricio';
+  document.getElementById('f-next').value=s.next||'';
+  document.getElementById('f-date-obj').value=s.dateObj||'';
+  document.getElementById('f-date-est').value=s.dateEst||'';
+  document.getElementById('f-risk').checked=!!s.risk;
+  document.getElementById('f-risk-ctx').value=s.riskCtx||'';
+  document.getElementById('risk-ctx-wrap').style.display=s.risk?'flex':'none';
+  document.getElementById('ai-prompt').value='';
+  document.getElementById('story-del-btn').style.display='flex';
+  onPlatformChange();
+  const sel=document.getElementById('f-module');for(const o of sel.options)if(o.value===s.module){o.selected=true;break;}
+  onModuleChange();
+  populateClientsCheck(s.clients||[]);
+  populateOppSelect(s.oppId||'');
+  document.querySelectorAll('#surfaces-check input').forEach(cb=>cb.checked=(s.surfaces||[]).includes(cb.value));
+  document.getElementById('story-modal').classList.add('open');
+}
+
+function closeStoryModal(){document.getElementById('story-modal').classList.remove('open');editStoryId=null;}
+
+async function generateStory(){
+  const prompt=document.getElementById('ai-prompt').value.trim();if(!prompt){toast('Escribí el requerimiento');return;}
+  const p=document.getElementById('f-platform').value,m=document.getElementById('f-module').value;
+  const btn=document.getElementById('ai-btn');btn.textContent='Generando...';btn.disabled=true;
+  try{
+    const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,platform:p,module:m})});
+    const parsed=JSON.parse(await r.text());
+    if(parsed.title)document.getElementById('f-title').value=parsed.title;
+    if(parsed.story)document.getElementById('f-story').value=parsed.story;
+    if(parsed.next)document.getElementById('f-next').value=parsed.next;
+    toast('Historia generada ✓');
+  }catch(e){toast('Error al generar');}
+  btn.textContent='Generar';btn.disabled=false;
+}
+
+async function saveStory(){
+  const title=document.getElementById('f-title').value.trim();if(!title){toast('Falta el título');return;}
+  const platform=document.getElementById('f-platform').value;if(!platform){toast('Falta la plataforma');return;}
+  const s={id:editStoryId||'s'+Date.now(),title,story:document.getElementById('f-story').value.trim(),platform,module:document.getElementById('f-module').value,status:document.getElementById('f-status').value,prio:document.getElementById('f-prio').value,owner:document.getElementById('f-owner').value,next:document.getElementById('f-next').value.trim(),clients:[...document.querySelectorAll('#clients-check input:checked')].map(x=>x.value),surfaces:[...document.querySelectorAll('#surfaces-check input:checked')].map(x=>x.value),dateObj:document.getElementById('f-date-obj').value||null,dateEst:document.getElementById('f-date-est').value||null,risk:document.getElementById('f-risk').checked,riskCtx:document.getElementById('f-risk-ctx').value.trim(),oppId:document.getElementById('f-opportunity').value||null};
+  const btn=document.getElementById('story-save-btn');btn.textContent='Guardando...';btn.disabled=true;
+  const row={id:s.id,title:s.title,story:s.story||null,platform:s.platform,module:s.module,status:s.status,prio:s.prio,owner:s.owner,next_step:s.next||null,clients:s.clients,surfaces:s.surfaces,date_obj:s.dateObj,date_est:s.dateEst,risk:s.risk,risk_ctx:s.riskCtx||null,opportunity_id:s.oppId||null};
+  const{error}=editStoryId?await db.from('stories').update(row).eq('id',s.id):await db.from('stories').insert(row);
+  btn.textContent='Guardar historia';btn.disabled=false;
+  if(error){toast('Error al guardar');return;}
+  if(editStoryId){const idx=stories.findIndex(x=>x.id===editStoryId);if(idx>=0)stories[idx]=s;}else stories.push(s);
+  toast('Guardada ✓');closeStoryModal();renderMain();
+}
+
+async function deleteStory(){
+  if(!editStoryId||!confirm('¿Eliminar?'))return;
+  await db.from('stories').delete().eq('id',editStoryId);
+  stories=stories.filter(x=>x.id!==editStoryId);
+  toast('Eliminada');closeStoryModal();renderMain();
+}
+
+/* ── CLIENT MODAL ── */
+function openNewClient(){
+  editClientId=null;
+  document.getElementById('client-modal-title').textContent='Nuevo cliente';
+  ['fc-company','fc-name','fc-email','fc-phone','fc-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fc-type').value='pipeline';
+  document.getElementById('fc-date').value='';
+  document.querySelectorAll('#fc-products input').forEach(cb=>cb.checked=false);
+  document.getElementById('client-del-btn').style.display='none';
+  document.getElementById('client-modal').classList.add('open');
+}
+
+function openEditClient(cid){
+  const c=clients.find(x=>x.id===cid);if(!c)return;
+  editClientId=cid;
+  document.getElementById('client-modal-title').textContent='Editar cliente';
+  document.getElementById('fc-company').value=c.company||'';
+  document.getElementById('fc-name').value=c.contactName||'';
+  document.getElementById('fc-email').value=c.email||'';
+  document.getElementById('fc-phone').value=c.phone||'';
+  document.getElementById('fc-type').value=c.type||'pipeline';
+  document.getElementById('fc-date').value=c.startDate||'';
+  document.getElementById('fc-notes').value=c.notes||'';
+  document.querySelectorAll('#fc-products input').forEach(cb=>cb.checked=(c.products||[]).includes(cb.value));
+  document.getElementById('client-del-btn').style.display='flex';
+  document.getElementById('client-modal').classList.add('open');
+}
+
+function closeClientModal(){document.getElementById('client-modal').classList.remove('open');editClientId=null;}
+
+async function saveClient(){
+  const company=document.getElementById('fc-company').value.trim();if(!company){toast('Falta el nombre');return;}
+  const c={id:editClientId||'cl'+Date.now(),company,contactName:document.getElementById('fc-name').value.trim(),email:document.getElementById('fc-email').value.trim(),phone:document.getElementById('fc-phone').value.trim(),type:document.getElementById('fc-type').value,startDate:document.getElementById('fc-date').value||null,products:[...document.querySelectorAll('#fc-products input:checked')].map(x=>x.value),notes:document.getElementById('fc-notes').value.trim()};
+  const btn=document.getElementById('client-save-btn');btn.textContent='Guardando...';btn.disabled=true;
+  const row={id:c.id,company:c.company,contact_name:c.contactName||null,email:c.email||null,phone:c.phone||null,type:c.type,start_date:c.startDate,products:c.products,notes:c.notes||null};
+  const{error}=editClientId?await db.from('clients').update(row).eq('id',c.id):await db.from('clients').insert(row);
+  btn.textContent='Guardar cliente';btn.disabled=false;
+  if(error){toast('Error al guardar');return;}
+  if(editClientId){const idx=clients.findIndex(x=>x.id===editClientId);if(idx>=0)clients[idx]=c;}else clients.push(c);
+  toast('Cliente guardado ✓');closeClientModal();renderMain();
+}
+
+async function deleteClient(){
+  if(!editClientId||!confirm('¿Eliminar cliente?'))return;
+  await db.from('clients').delete().eq('id',editClientId);
+  clients=clients.filter(x=>x.id!==editClientId);
+  toast('Eliminado');closeClientModal();renderMain();
+}
+
+/* ── OPP MODAL ── */
+function updateProbability(){
+  const st=document.getElementById('fo-status').value;
+  const prob=OPP_STATUS[st]?.prob;
+  if(prob!==undefined)document.getElementById('fo-prob').value=prob;
+}
+
+function openNewOpp(){
+  editOppId=null;
+  document.getElementById('opp-modal-title').textContent='Nueva oportunidad';
+  ['fo-name','fo-usd','fo-ars','fo-next','fo-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fo-status').value='prospeccion';
+  document.getElementById('fo-date').value='';
+  document.getElementById('fo-prob').value='10';
+  document.getElementById('fo-client').innerHTML=clients.map(c=>`<option value="${c.id}">${c.company}</option>`).join('');
+  document.querySelectorAll('#fo-products input').forEach(cb=>cb.checked=false);
+  document.getElementById('opp-del-btn').style.display='none';
+  document.getElementById('opp-modal').classList.add('open');
+}
+
+function openEditOpp(oid){
+  const o=opps.find(x=>x.id===oid);if(!o)return;
+  editOppId=oid;
+  document.getElementById('opp-modal-title').textContent='Editar oportunidad';
+  document.getElementById('fo-name').value=o.name||'';
+  document.getElementById('fo-status').value=o.status||'prospeccion';
+  document.getElementById('fo-prob').value=o.probability??OPP_STATUS[o.status]?.prob??10;
+  document.getElementById('fo-usd').value=o.valueUsd||'';
+  document.getElementById('fo-ars').value=o.valueArs||'';
+  document.getElementById('fo-date').value=o.closeDate||'';
+  document.getElementById('fo-next').value=o.nextStep||'';
+  document.getElementById('fo-notes').value=o.notes||'';
+  document.getElementById('fo-client').innerHTML=clients.map(c=>`<option value="${c.id}" ${c.id===o.clientId?'selected':''}>${c.company}</option>`).join('');
+  document.querySelectorAll('#fo-products input').forEach(cb=>cb.checked=(o.products||[]).includes(cb.value));
+  document.getElementById('opp-del-btn').style.display='flex';
+  document.getElementById('opp-modal').classList.add('open');
+}
+
+function closeOppModal(){document.getElementById('opp-modal').classList.remove('open');editOppId=null;}
+
+async function saveOpp(){
+  const name=document.getElementById('fo-name').value.trim();if(!name){toast('Falta el nombre');return;}
+  const o={id:editOppId||'op'+Date.now(),name,clientId:document.getElementById('fo-client').value,products:[...document.querySelectorAll('#fo-products input:checked')].map(x=>x.value),status:document.getElementById('fo-status').value,valueUsd:parseFloat(document.getElementById('fo-usd').value)||null,valueArs:parseFloat(document.getElementById('fo-ars').value)||null,closeDate:document.getElementById('fo-date').value||null,probability:parseInt(document.getElementById('fo-prob').value)||0,nextStep:document.getElementById('fo-next').value.trim(),notes:document.getElementById('fo-notes').value.trim()};
+  const btn=document.getElementById('opp-save-btn');btn.textContent='Guardando...';btn.disabled=true;
+  const row={id:o.id,name:o.name,client_id:o.clientId||null,products:o.products,status:o.status,value_usd:o.valueUsd,value_ars:o.valueArs,close_date:o.closeDate,probability:o.probability,next_step:o.nextStep||null,notes:o.notes||null};
+  const{error}=editOppId?await db.from('opportunities').update(row).eq('id',o.id):await db.from('opportunities').insert(row);
+  btn.textContent='Guardar oportunidad';btn.disabled=false;
+  if(error){toast('Error al guardar');return;}
+  if(editOppId){const idx=opps.findIndex(x=>x.id===editOppId);if(idx>=0)opps[idx]=o;}else opps.push(o);
+  toast('Oportunidad guardada ✓');closeOppModal();renderMain();
+}
+
+async function deleteOpp(){
+  if(!editOppId||!confirm('¿Eliminar oportunidad?'))return;
+  await db.from('opportunities').delete().eq('id',editOppId);
+  opps=opps.filter(x=>x.id!==editOppId);
+  toast('Eliminada');closeOppModal();renderMain();
+}
+
+document.getElementById('f-risk').addEventListener('change',function(){document.getElementById('risk-ctx-wrap').style.display=this.checked?'flex':'none';});
+['story-modal','client-modal','opp-modal'].forEach(id=>{document.getElementById(id).addEventListener('click',e=>{if(e.target===document.getElementById(id))document.getElementById(id).classList.remove('open');});});
+document.getElementById('ai-prompt').addEventListener('keydown',e=>{if(e.key==='Enter')generateStory();});
+
+loadAll();
+</script>
+</body>
+</html>
