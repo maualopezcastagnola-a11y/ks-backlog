@@ -892,14 +892,26 @@ function closeStoryModal(){document.getElementById('story-modal').classList.remo
 
 async function generateStory(){
   const prompt=document.getElementById('ai-prompt').value.trim();if(!prompt){toast('Escribí el requerimiento');return;}
-  const p=document.getElementById('f-platform').value,m=document.getElementById('f-module').value;
+  const curPlatform=document.getElementById('f-platform').value;
+  const curModule=document.getElementById('f-module').value;
   const btn=document.getElementById('ai-btn');btn.textContent='Generando...';btn.disabled=true;
   try{
-    const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,platform:p,module:m})});
+    const platformList=Object.entries(PLATFORMS).map(([k,v])=>`${k}: ${v.label} (productos: ${v.modules.join(', ')})`).join('\n');
+    const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,platform:curPlatform,module:curModule,platformList})});
     const parsed=JSON.parse(await r.text());
     if(parsed.title)document.getElementById('f-title').value=parsed.title;
     if(parsed.story)document.getElementById('f-story').value=parsed.story;
     if(parsed.next)document.getElementById('f-next').value=parsed.next;
+    if(parsed.platform&&PLATFORMS[parsed.platform]){
+      document.getElementById('f-platform').value=parsed.platform;
+      onPlatformChange();
+      if(parsed.module){
+        const sel=document.getElementById('f-module');
+        for(const o of sel.options)if(o.value===parsed.module){o.selected=true;break;}
+        onModuleChange();
+      }
+    }
+    if(parsed.prio)document.getElementById('f-prio').value=parsed.prio;
     toast('Historia generada ✓');
   }catch(e){toast('Error al generar');}
   btn.textContent='Generar';btn.disabled=false;
