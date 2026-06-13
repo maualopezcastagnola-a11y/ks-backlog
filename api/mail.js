@@ -13,7 +13,7 @@ export default async function handler(req) {
     },
     body: JSON.stringify({
       from: 'ks·backlog <onboarding@resend.dev>',
-      to: ['mauricio.lopez@keepitsimple.com.ar', 'mariano@keepitsimple.com.ar'],
+      to: ['maualopezcastagnola@gmail.com', 'maoscherov@gmail.com'],
       subject: body.subject,
       html: body.html
     })
