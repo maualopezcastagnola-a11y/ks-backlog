@@ -5,25 +5,25 @@ export default async function handler(req) {
   
   const { prompt, platform, module } = await req.json();
   
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01'
+      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 600,
+      model: 'llama-3.1-8b-instant',
       messages: [{
         role: 'user',
-        content: `PM experto SaaS. Convertí en historia de usuario.\nRequerimiento: "${prompt}"\nPlataforma: ${platform||'—'} Producto: ${module||'—'}\nJSON sin markdown: {"title":"máx 8 palabras","story":"Como [rol], quiero [acción] para [beneficio].","next":"primer paso técnico"}`
-      }]
+        content: `Sos un PM experto en SaaS. Convertí este requerimiento en una historia de usuario.\nRequerimiento: "${prompt}"\nPlataforma: ${platform||'—'} Producto: ${module||'—'}\nRespondé SOLO en JSON sin markdown:\n{"title":"máx 8 palabras","story":"Como [rol], quiero [acción] para [beneficio].","next":"primer paso técnico concreto"}`
+      }],
+      max_tokens: 400,
+      temperature: 0.3
     })
   });
   
   const data = await resp.json();
-  const text = data.content?.find(b => b.type === 'text')?.text || '{}';
+  const text = data.choices?.[0]?.message?.content || '{}';
   
   return new Response(text.replace(/```json|```/g, '').trim(), {
     headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
