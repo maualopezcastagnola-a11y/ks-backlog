@@ -20,7 +20,10 @@ export default async function handler(req) {
   });
 
   const data = await resp.json();
+  console.log('RESEND RESPONSE:', JSON.stringify(data));
+  
   return new Response(JSON.stringify(data), {
+    status: resp.status,
     headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
   });
 }
